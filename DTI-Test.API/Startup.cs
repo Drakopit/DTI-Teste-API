@@ -1,7 +1,13 @@
+using DTI_Test.Repository;
+using DTI_Test.Repository.Interfaces;
+using DTI_Test.Repository.Repositories;
+using DTI_Test.Service.Interfaces;
+using DTI_Test.Service.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -16,6 +22,7 @@ namespace DTI_Test.API
 {
     public class Startup
     {
+        private readonly string MyPolicies = "_myPolicies";
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
@@ -28,6 +35,29 @@ namespace DTI_Test.API
         {
 
             services.AddControllers();
+
+            services.AddDbContext<DTIContext>(options =>
+            {
+                options.UseSqlite(Configuration.GetConnectionString("Connection"));
+             });
+
+            #region Services
+            services.AddScoped<IProductService, ProductService>();
+            #endregion
+
+            #region Repositories
+            services.AddScoped<IProductRepository, ProductRepository>();
+            #endregion
+
+            services.AddCors(options =>
+            {
+                options.AddPolicy(name: MyPolicies, 
+                    policy =>
+                    {
+                        policy.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin();
+                    });
+            });
+
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "DTI_Test.API", Version = "v1" });
@@ -47,6 +77,8 @@ namespace DTI_Test.API
             app.UseHttpsRedirection();
 
             app.UseRouting();
+
+            app.UseCors(MyPolicies);
 
             app.UseAuthorization();
 
